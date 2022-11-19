@@ -5,8 +5,9 @@ const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const { interface, bytecode } = require('../compile');
 
-const provider = ganache.provider();
-const web3 = new Web3(provider);
+const provider = ganache.provider(); // instructs what network we want to connect to and contains info about different accounts
+const web3 = new Web3(provider); //portal to the Ethereum network
+// allows us to interact with the Ethereum network
 
 // HOW TO DO MOCHA TESTING: 
 // class Car {
@@ -44,8 +45,8 @@ beforeEach(async () => {
     // We then deploy the contract and pass in the bytecode and any arguments that the contract constructor function requires
     // We then send the transaction to the network and wait for the transaction to be mined
     inbox = await new web3.eth.Contract(JSON.parse(interface))
-    .deploy({data: bytecode, arguments: ['Hi there!']})
-    .send({ from: accounts[0], gas: '1000000'})
+        .deploy({ data: bytecode, arguments: ['Hi there!'] })
+        .send({ from: accounts[0], gas: '1000000' })
 
     // our 'inbox' variable is now a javascript representation of our contract
 
