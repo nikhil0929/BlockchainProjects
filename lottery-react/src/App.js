@@ -3,12 +3,12 @@ import './App.css';
 import web3 from './web3';
 import lottery from './lottery';
 
-function 
 
-const manager = await lottery.methods.manager().call();
+// const manager = await lottery.methods.manager().call();
 
 function App() {
 
+  console.log(web3.version)
   return (
     <div className="App">
       <header className="App-header">
