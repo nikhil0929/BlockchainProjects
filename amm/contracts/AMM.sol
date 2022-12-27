@@ -23,16 +23,52 @@ contract AMM {
         token2 = IERC20(token2_address);
     }
 
+    /////////// PRIVATE FUNCTIONS \\\\\\\\\\\
+
+    function _sqrt(uint256 x) private pure returns (uint256 z) {
+        if (x > 3) {
+            z = x;
+            uint256 y = x / 2 + 1;
+            while (y < z) {
+                z = y;
+                y = (x / y + y) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
+    }
+
+    /////////// MODIFIER FUNCTIONS \\\\\\\\\\\
+
+    modifier canSupplyToken(
+        address sdr,
+        uint256 token_in,
+        IERC20 token_type
+    ) {
+        require(
+            token_in > 0,
+            "Amount of tokens supplied must be greater than 0"
+        );
+        require(
+            (token_type.balanceOf(sdr) - token_in) > 0,
+            "user does not have enough tokens to send"
+        );
+        _;
+    }
+
+    /////////// CONTRACT FUNCTIONS \\\\\\\\\\\
+
     // Function allows users to add liquidity to the pool and gives them shares in return
     // if the liquidity pool is originally empty, then
     function AddLiquidity(uint256 token1_in, uint256 token2_in)
         public
+        canSupplyToken(msg.sender, token1_in, token1)
+        canSupplyToken(msg.sender, token2_in, token2)
         returns (uint256 share)
     {
         // Check if msg.sender has enough funds to run this transaction for the specified amount
         // Withdraw token1_in and token2_in amounts from msg.sender
         // if no shares exist (new AMM created):
-        //      - set rate to token1_in : token2_in :: token1_total : token2_total
         //      - share_amount = sqrt(token1_in * token2_in)
         // if shares DO exist:
         //      - share1 = (token1_in / token1_total) * total_shares
@@ -43,6 +79,43 @@ contract AMM {
         // increase token1_total / token2_total by token1_in / token2_in
         // recalculate constant K: K = token1_total * token2_total
         // return share amount
+
+        bool didTransfer = token1.transferFrom(
+            msg.sender,
+            address(this),
+            token1_in
+        );
+        didTransfer =
+            token2.transferFrom(msg.sender, address(this), token2_in) &&
+            didTransfer;
+
+        require(didTrasfer, "Token transfer was not successful");
+
+        uint256 share_amount;
+        if (total_shares == 0) {
+            // share_amount = sqrt(token1_in * token2_in)
+            share_amount = _sqrt(token1_in * token2_in);
+        } else {
+            // share1 = (token1_in / token1_total) * total_shares
+            uint256 share1 = mul(div(token1_in, token1_total), total_shares);
+
+            // share2 = (token2_in / token2_total) * total_shares
+            uint256 share2 = mul(div(token2_in, token2_total), total_shares);
+
+            require(
+                share1 == share2,
+                "equivalent number of tokens not supplied (50:50 AMM)"
+            );
+
+            share_amount = share1;
+        }
+        user_shares[msg.sender] = share_amount;
+        token1_total = token1.balanceOf(address(this));
+        token2_total = token2.balanceOf(address(this));
+
+        K = mul(token1_total, token2_total);
+
+        return share_amount;
     }
 
     function WithdrawLiquidity(uint256 share)
