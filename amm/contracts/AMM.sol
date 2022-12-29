@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract AMM {
-    using SafeMath for uint256;
-
     uint256 token1_total; //token1 total supply
     uint256 token2_total; //token2 total supply
     uint256 total_shares; //total shares distributed to liquidity providers (LP)
@@ -18,7 +15,7 @@ contract AMM {
     IERC20 immutable token1;
     IERC20 immutable token2;
 
-    constructor(address token1_address, address token2_address) public {
+    constructor(address token1_address, address token2_address) {
         token1 = IERC20(token1_address);
         token2 = IERC20(token2_address);
     }
@@ -33,7 +30,7 @@ contract AMM {
                 z = y;
                 y = (x / y + y) / 2;
             }
-        } else if (y != 0) {
+        } else if (x != 0) {
             z = 1;
         }
     }
@@ -56,6 +53,15 @@ contract AMM {
         _;
     }
 
+    modifier hasValidShareAmount(uint256 share) {
+        require(share > 0, "Share input amount must be greater than 0");
+        require(
+            share <= total_shares,
+            "Share input amount cannot exceed total number of shares"
+        );
+        _;
+    }
+
     /////////// CONTRACT FUNCTIONS \\\\\\\\\\\
 
     // Function allows users to add liquidity to the pool and gives them shares in return
@@ -64,7 +70,7 @@ contract AMM {
         public
         canSupplyToken(msg.sender, token1_in, token1)
         canSupplyToken(msg.sender, token2_in, token2)
-        returns (uint256 share)
+        returns (uint256)
     {
         // Check if msg.sender has enough funds to run this transaction for the specified amount
         // Withdraw token1_in and token2_in amounts from msg.sender
@@ -89,7 +95,7 @@ contract AMM {
             token2.transferFrom(msg.sender, address(this), token2_in) &&
             didTransfer;
 
-        require(didTrasfer, "Token transfer was not successful");
+        require(didTransfer, "Token transfer was not successful");
 
         uint256 share_amount;
         if (total_shares == 0) {
@@ -97,10 +103,10 @@ contract AMM {
             share_amount = _sqrt(token1_in * token2_in);
         } else {
             // share1 = (token1_in / token1_total) * total_shares
-            uint256 share1 = mul(div(token1_in, token1_total), total_shares);
+            uint256 share1 = (token1_in / token1_total) * total_shares;
 
             // share2 = (token2_in / token2_total) * total_shares
-            uint256 share2 = mul(div(token2_in, token2_total), total_shares);
+            uint256 share2 = (token2_in / token2_total) * total_shares;
 
             require(
                 share1 == share2,
@@ -113,15 +119,33 @@ contract AMM {
         token1_total = token1.balanceOf(address(this));
         token2_total = token2.balanceOf(address(this));
 
-        K = mul(token1_total, token2_total);
+        K = token1_total * token2_total;
 
         return share_amount;
     }
 
+    // Function allows users with shares in the liquidity pool to "cash in" their shares for the tokens they put in
     function WithdrawLiquidity(uint256 share)
         public
-        returns (uint256 token1, uint256 token2)
-    {}
+        hasValidShareAmount(share)
+        returns (uint256, uint256)
+    {
+        uint256 amount_token1 = (share / total_shares) * token1_total;
+        uint256 amount_token2 = (share / total_shares) * token1_total;
+
+        token1_total -= amount_token1;
+        token2_total -= amount_token2;
+
+        user_shares[msg.sender] -= share;
+        total_shares -= total_shares;
+
+        K = token1_total * token2_total;
+
+        token1.transferFrom(address(this), msg.sender, amount_token1);
+        token2.transferFrom(address(this), msg.sender, amount_token2);
+
+        return (amount_token1, amount_token2);
+    }
 
     function SwapToken(uint256 token_amount)
         public
