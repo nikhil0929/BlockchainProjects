@@ -130,6 +130,19 @@ contract AMM {
         hasValidShareAmount(share)
         returns (uint256, uint256)
     {
+        /*
+        - Make sure share > 0
+        - Make sure share <= total_shares
+
+        - Calculate token amount for given amount of shares:
+            - amount_tokenX = (share / total_shares) * total_tokenX  <== do this for both token1 and token1
+        - Remove liquidity from pool:
+            - total_tokenX =  -= amount_tokenX
+        - Reduce msg.sender's share amount from mapping
+        - Reduce total_shares amount by share
+        - Transfer tokenX from this contract to msg.sender
+
+        */
         uint256 amount_token1 = (share / total_shares) * token1_total;
         uint256 amount_token2 = (share / total_shares) * token1_total;
 
@@ -137,7 +150,7 @@ contract AMM {
         token2_total -= amount_token2;
 
         user_shares[msg.sender] -= share;
-        total_shares -= total_shares;
+        total_shares -= share;
 
         K = token1_total * token2_total;
 
@@ -147,8 +160,82 @@ contract AMM {
         return (amount_token1, amount_token2);
     }
 
-    function SwapToken(uint256 token_amount)
+    // function SwapToken(address token_address, uint256 token_amount)
+    //     public
+    //     canSupplyToken(msg.sender, token_amount, token_address)
+    //     returns (uint256 return_token_amount)
+    // {
+    //     /*
+    //     - Check if user has supplied valid token amount
+    //     */
+
+    //     (IERC20 token_in, IERC20 token_out) = token_address == token1
+    //         ? (token1, token2)
+    //         : (token2, token1);
+
+    //     token_in.transferFrom(msg.sender, address(this), token_amount);
+    //     uint256 fee_token_in = (token_amount * 995) / 1000;
+
+    //     uint256 token_out_amt =
+
+    // }
+
+    function swapToken_1to2(uint256 token_amount)
         public
+        canSupplyToken(msg.sender, token_amount, token1)
         returns (uint256 return_token_amount)
-    {}
+    {
+        /*
+        - Check if user has supplied valid token amount
+        */
+
+        token1.transferFrom(msg.sender, address(this), token_amount);
+        uint256 final_token1 = token1.balanceOf(address(this));
+
+        uint256 final_token2 = K / final_token1;
+        return_token_amount = token2_total - final_token2;
+
+        // Take a 0.5% fee
+        return_token_amount = (return_token_amount * 995) / 1000;
+
+        token2.transfer(msg.sender, return_token_amount);
+
+        //update token1_amount, and token2_amount
+
+        token1_total = final_token1;
+        token2_total = token2.balanceOf(address(this));
+        //update K
+
+        K = token1_total * token2_total;
+    }
+
+    // Separated the functions to because of the reduced gas fees
+    function swapToken_2to1(uint256 token_amount)
+        public
+        canSupplyToken(msg.sender, token_amount, token2)
+        returns (uint256 return_token_amount)
+    {
+        /*
+        - Check if user has supplied valid token amount
+        */
+
+        token2.transferFrom(msg.sender, address(this), token_amount);
+        uint256 final_token2 = token2.balanceOf(address(this));
+
+        uint256 final_token1 = K / final_token2;
+        return_token_amount = token1_total - final_token1;
+
+        // Take a 0.5% fee
+        return_token_amount = (return_token_amount * 995) / 1000;
+
+        token1.transfer(msg.sender, return_token_amount);
+
+        //update token1_amount, and token2_amount
+
+        token2_total = final_token2;
+        token1_total = token2.balanceOf(address(this));
+        //update K
+
+        K = token1_total * token2_total;
+    }
 }
