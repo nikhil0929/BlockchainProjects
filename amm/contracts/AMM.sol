@@ -4,13 +4,13 @@ pragma solidity >=0.4.22 <0.9.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract AMM {
-    uint256 token1_total; //token1 total supply
-    uint256 token2_total; //token2 total supply
-    uint256 total_shares; //total shares distributed to liquidity providers (LP)
+    uint256 public token1_total; //token1 total supply
+    uint256 public token2_total; //token2 total supply
+    uint256 public total_shares; //total shares distributed to liquidity providers (LP)
 
-    uint256 K; // Constant K that represents the market constant: token1_total * token2_total = K
+    uint256 public K; // Constant K that represents the market constant: token1_total * token2_total = K
 
-    mapping(address => uint256) user_shares; // mapping of LP addresses to the shares they own
+    mapping(address => uint256) public user_shares; // mapping of LP addresses to the shares they own
 
     IERC20 immutable token1;
     IERC20 immutable token2;
