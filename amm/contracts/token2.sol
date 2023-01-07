@@ -6,4 +6,8 @@ contract TestToken2 is ERC20 {
     constructor(uint256 initialBalance) public ERC20("TestToken2", "TT2") {
         _mint(msg.sender, initialBalance);
     }
+
+    function mint(address account, uint256 amount) public {
+        _mint(account, amount);
+    }
 }

@@ -9,12 +9,12 @@ let test_token1_addy;
 let test_token2_addy; 
 
 module.exports = async function(deployer) {
-  await deployer.deploy(testToken1, 10000).then(() => {
+  await deployer.deploy(testToken1, 0).then(() => {
     console.log("testToken1.address: ", testToken1.address);
     test_token1_addy = testToken1.address;
   });
 
-  await deployer.deploy(testToken2, 10000).then(() => {
+  await deployer.deploy(testToken2, 0).then(() => {
     console.log("testToken2.address: ", testToken2.address);
     test_token2_addy = testToken2.address;
   });

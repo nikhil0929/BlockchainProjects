@@ -82,10 +82,12 @@ contract AMM {
         //      - check if share1 == share2 (for now: this makes it easier to distribute shares)
         //      - share_amount = share1
         // set user_shares[msg.sender] = share_amount
+        // increase total_shares by share_amount
         // increase token1_total / token2_total by token1_in / token2_in
         // recalculate constant K: K = token1_total * token2_total
         // return share amount
 
+        // This contract is transferring tokens for the user, so this contract needs approval to do so (OpenZeppelin 'approve()' function)
         bool didTransfer = token1.transferFrom(
             msg.sender,
             address(this),
@@ -116,6 +118,8 @@ contract AMM {
             share_amount = share1;
         }
         user_shares[msg.sender] = share_amount;
+        total_shares += share_amount;
+
         token1_total = token1.balanceOf(address(this));
         token2_total = token2.balanceOf(address(this));
 
@@ -159,26 +163,6 @@ contract AMM {
 
         return (amount_token1, amount_token2);
     }
-
-    // function SwapToken(address token_address, uint256 token_amount)
-    //     public
-    //     canSupplyToken(msg.sender, token_amount, token_address)
-    //     returns (uint256 return_token_amount)
-    // {
-    //     /*
-    //     - Check if user has supplied valid token amount
-    //     */
-
-    //     (IERC20 token_in, IERC20 token_out) = token_address == token1
-    //         ? (token1, token2)
-    //         : (token2, token1);
-
-    //     token_in.transferFrom(msg.sender, address(this), token_amount);
-    //     uint256 fee_token_in = (token_amount * 995) / 1000;
-
-    //     uint256 token_out_amt =
-
-    // }
 
     function swapToken_1to2(uint256 token_amount)
         public
